@@ -1,7 +1,7 @@
 ### 个人简单HTTP服务器
 > 主要参考了[Tinyhttpd](https://github.com/EZLippi/Tinyhttpd)
 >
-> 项目已经部署在了阿里云服务器，可以通过www.foregic.com访问
+> 
 
 
  
