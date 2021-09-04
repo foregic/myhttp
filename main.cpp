@@ -1,8 +1,6 @@
 #include "header.h"
 
-#define ISspace(x) isspace((int)(x))
-
-#include <fcntl.h>
+#define MAXEVENTS 5
 
 int main(int argv, char *argc[])
 {
@@ -36,8 +34,6 @@ int main(int argv, char *argc[])
     ev.data.fd = server_socket;
     epoll_ctl(epollfd, EPOLL_CTL_ADD, server_socket, &ev); //将监听事件加入到epoll中
 
-#define MAXEVENTS 100
-
     while (1)
     {
         epoll_event events[MAXEVENTS]; //存放有事件发生的数组
@@ -51,11 +47,12 @@ int main(int argv, char *argc[])
         }
         for (int ii = 0; ii < infds; ++ii)
         {
-            if ((events[ii].data.fd == server_socket) && events[ii].events & EPOLLIN)
+            if (events[ii].data.fd == server_socket)
             { //发生事件的套接字为服务器套接字
                 struct sockaddr_in client;
                 socklen_t len = sizeof(client);
                 int client_socket = accept(server_socket, (struct sockaddr *)&client, &len);
+                printf("%s,%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
                 if (client_socket < 0)
                 {
                     perror("accept() failed\n");
@@ -63,7 +60,7 @@ int main(int argv, char *argc[])
                 }
                 fcntl(client_socket, F_SETFL, fcntl(client_socket, F_GETFL, 0));
 
-                ev.events = EPOLLIN | EPOLLET; //设置读事件和ET模式
+                ev.events = EPOLLIN; //设置读事件和ET模式
                 ev.data.fd = client_socket;
 
                 epoll_ctl(epollfd, EPOLL_CTL_ADD, client_socket, &ev);
@@ -71,9 +68,12 @@ int main(int argv, char *argc[])
             else
             {
                 char buffer[1024];
+                memset(buffer, 0, sizeof(buffer));
+
                 ssize_t data_size = read(events[ii].data.fd, buffer, sizeof(buffer)); //buffer里存了请求报文
                 if (data_size <= 0)
                 {
+                    //如果客户端关闭请求
                     printf("client disconnetced\n");
                     memset(&ev, 0, sizeof(ev));
                     ev.events = EPOLLIN;
@@ -82,11 +82,11 @@ int main(int argv, char *argc[])
                     close(events[ii].data.fd);
                     continue;
                 }
+
                 response(events[ii].data.fd, buffer);
             }
         }
     }
-
     close(server_socket);
     return 0;
 }

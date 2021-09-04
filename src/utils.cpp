@@ -22,19 +22,30 @@ int start(u_short &port)
     listen(http_socket, 5); //最大连接数
     return http_socket;
 }
-
+/**
+ * @description  : 发送文件给套接字
+ * @param         {int} client，客户端套接字
+ * @param         {FILE} *filename，文件指针
+ * @return        {*}
+ */
 void send_file(int client, FILE *filename)
 {
     //发送文件的内容
     char buf[1024];
     while (!feof(filename))
     {
+        printf("%s\n", buf);
         fgets(buf, sizeof(buf), filename);
         send(client, buf, strlen(buf), 0);
-        // fgets(buf, sizeof(buf), filename);
     }
 }
-using std::string;
+
+/**
+ * @description  : 相应请求，发送对应文件
+ * @param         {int} fd
+ * @param         {char} *buffer
+ * @return        {*}
+ */
 void response(int fd, char *buffer)
 {
     // printf("%s\n", buffer);
@@ -42,7 +53,7 @@ void response(int fd, char *buffer)
     string request(buffer);
     http_request_parse(request, header);
     printf("打印报文\n");
-    tyhp_print_http_header(header);
+    print_http_request_header(header);
 
     if (header->method == "GET")
     {
@@ -50,5 +61,25 @@ void response(int fd, char *buffer)
         {
             headers(fd, "resources/http/index.html");
         }
+        else
+        {
+            string tmp("resources/http");
+            tmp += header->url;
+            cout << tmp << endl;
+            if (!file_exist(tmp))
+            {
+                not_found(fd);
+                return;
+            }
+
+            headers(fd, tmp.c_str());
+        }
+    }
+    else if (header->method == "POST")
+    {
+    }
+    else
+    {
+        not_implemented(fd);
     }
 }

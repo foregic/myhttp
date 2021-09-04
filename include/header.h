@@ -28,6 +28,8 @@
 #include <stdexcept>
 #include <iostream>
 #include <wait.h>
+#include <fcntl.h>
+
 
 #include "utils.h"
 #include "http.h"

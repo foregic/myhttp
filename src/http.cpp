@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-08-28 11:11:22
  * @LastEditors  : foregic
- * @LastEditTime : 2021-09-04 20:05:22
+ * @LastEditTime : 2021-09-04 22:23:14
  * @FilePath     : /httpserver/src/http.cpp
  * @Description  : 
  */
@@ -103,7 +103,7 @@ bool http_request_parse(const string &http_request, http_request_header *phttphd
  * @param         {http_request_header_line} &header
  * @return        返回空值表示查找失败，否则返回相应的值
  */
-string tyhp_get_value_from_http_header(const string &key, const http_request_header_line &header)
+string get_value_from_http_request_header(const string &key, const http_request_header_line &header)
 {
     if (header.empty())
         return "";
@@ -118,7 +118,7 @@ string tyhp_get_value_from_http_header(const string &key, const http_request_hea
  * @param         {http_request_header_line} &head，首部行
  * @return        {*}
  */
-void tyhp_print_http_header_header(const http_request_header_line &head)
+void print_http_request_header_line(const http_request_header_line &head)
 {
     if (!head.empty())
     {
@@ -136,7 +136,7 @@ void tyhp_print_http_header_header(const http_request_header_line &head)
  * @param         {http_request_header} *请求头指针
  * @return        {*}
  */
-void tyhp_print_http_header(http_request_header *phttphdr)
+void print_http_request_header(http_request_header *phttphdr)
 {
     if (NULL == phttphdr)
     {
@@ -145,7 +145,7 @@ void tyhp_print_http_header(http_request_header *phttphdr)
     }
 
     cout << phttphdr->method << " " << phttphdr->url << " " << phttphdr->version << endl;
-    tyhp_print_http_header_header(phttphdr->header);
+    print_http_request_header_line(phttphdr->header);
     cout << endl
          << phttphdr->body << endl;
 }
@@ -153,9 +153,15 @@ void tyhp_print_http_header(http_request_header *phttphdr)
 //发送HTTP头，解析成功，给客户端返回指定文件
 void headers(int client, const char *file)
 {
+    printf("200 OK 发送文件\n");
     char buf[1024];
+
+    memset(buf, 0, sizeof(buf));
     strcpy(buf, "HTTP/1.1 200 OK\r\n");
+    // printf("%s", buf);
+
     send(client, buf, strlen(buf), 0);
+
     strcpy(buf, SERVER_STRING);
     send(client, buf, strlen(buf), 0);
     sprintf(buf, "Content-Type: text/html\r\n");
@@ -170,7 +176,7 @@ void headers(int client, const char *file)
 }
 
 //发送400，客户端请求的语法错误，服务器无法理解
-void bad_request(int &client)
+void bad_request(int client)
 {
     char buf[1024];
     sprintf(buf, "HTTP/1.1 400 BAD REQUEST\r\n");
@@ -188,10 +194,9 @@ void bad_request(int &client)
 }
 
 //发送404，服务器无法根据客户端请求找到资源
-void not_found(int &client)
+void not_found(int client)
 {
     char buf[1024];
-
     sprintf(buf, "HTTP/1.1 404 NOT FOUND\r\n");
     send(client, buf, strlen(buf), 0);
     sprintf(buf, SERVER_STRING);
@@ -209,7 +214,7 @@ void not_found(int &client)
 }
 
 //发送500，服务器内部错误，无法完成请求
-void internal_server_error(int &client)
+void internal_server_error(int client)
 {
     char buf[1024];
     //发送500
@@ -228,7 +233,7 @@ void internal_server_error(int &client)
 }
 
 //发送501，服务器不支持请求的功能，无法完成请求
-void not_implemented(int &client)
+void not_implemented(int client)
 {
     char buf[1024];
     sprintf(buf, "HTTP/1.1 501 Not Implemented\r\n");
