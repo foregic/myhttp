@@ -29,13 +29,14 @@
 #include <iostream>
 #include <wait.h>
 #include <fcntl.h>
+#include<unordered_map>
 
 
 #include "utils.h"
 #include "http.h"
 
 #define SERVER_STRING "Server: myhttp/1.0\r\n"
-#define make_tyhp_header(key, value) std::make_pair((key), (value))
+#define make_http_header(key, value) std::make_pair((key), (value))
 
 
 

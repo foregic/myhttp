@@ -8,12 +8,8 @@ using std::string;
 void send_file(int client, FILE *filename);
 int start(u_short &port);
 void response(int fd, char *buffer);
+string decode(const string &str);
 
-// inline bool file_exist(const std::string &name)
-// {
-//     struct stat buffer;
-//     return (stat(name.c_str(), &buffer) == 0);
-// }
 
 inline bool file_exist(const std::string &name)
 {

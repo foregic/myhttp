@@ -57,6 +57,10 @@ $ ./main 10000 # 设置运行端口号为10000,more监听端口号12100
 
 #### 1.1
 增加了epoll多路复用，可以正常返回index.html
+性能测试：
+![](resources/img/epoll测试1.png)
+
+![](resources/img/epoll测试2.png)
 
 #### 1.0
 功能：简单的服务器访问，目前仅能通过ip地址+端口号访问

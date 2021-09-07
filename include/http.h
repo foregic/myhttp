@@ -10,15 +10,14 @@ using std::string;
 using std::stringstream;
 
 typedef std::map<string, string> http_request_header_line;
+typedef std::unordered_map<string, string> key_value;
 
 struct http_request_header
 {
     string method;
     string url;
     string version;
-
     http_request_header_line header;
-
     string body;
 };
 
@@ -28,6 +27,7 @@ void internal_server_error(int client);
 void not_implemented(int client);
 void headers(int client, const char *file);
 
+void post_response(key_value dict, int client);
 bool http_request_parse(const string &http_request, http_request_header *client_http);
 void print_http_request_header_line(const http_request_header_line &head);
 string get_value_from_http_request_header(const string &key, const http_request_header_line &header);

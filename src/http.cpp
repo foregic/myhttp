@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-08-28 11:11:22
  * @LastEditors  : foregic
- * @LastEditTime : 2021-09-04 22:23:14
+ * @LastEditTime : 2021-09-06 11:17:41
  * @FilePath     : /httpserver/src/http.cpp
  * @Description  : 
  */
@@ -51,7 +51,7 @@ bool http_request_parse(const string &http_request, http_request_header *phttphd
     size_t pos_crlfcrlf = http_request.find(crlfcrlf, prev);
     if (pos_crlfcrlf == string::npos)
     {
-        perror("http_request_parse: http_request has not a \"\r\n\r\n\"");
+        perror("http_request: http_request has not a \"\r\n\r\n\"");
         return false;
     }
 
@@ -83,7 +83,7 @@ bool http_request_parse(const string &http_request, http_request_header *phttphd
             for (; next != end; ++end)
                 ;
             value = buff.substr(beg, end - beg);
-            phttphdr->header.insert(make_tyhp_header(key, value));
+            phttphdr->header.insert(make_http_header(key, value));
 
             prev = next;
         }
@@ -153,15 +153,12 @@ void print_http_request_header(http_request_header *phttphdr)
 //发送HTTP头，解析成功，给客户端返回指定文件
 void headers(int client, const char *file)
 {
-    printf("200 OK 发送文件\n");
+    // printf("200 OK 发送文件\n");
     char buf[1024];
 
     memset(buf, 0, sizeof(buf));
     strcpy(buf, "HTTP/1.1 200 OK\r\n");
-    // printf("%s", buf);
-
     send(client, buf, strlen(buf), 0);
-
     strcpy(buf, SERVER_STRING);
     send(client, buf, strlen(buf), 0);
     sprintf(buf, "Content-Type: text/html\r\n");
@@ -175,6 +172,41 @@ void headers(int client, const char *file)
     send(client, buf, strlen(buf), 0);
 }
 
+//发送浏览器发送的post请求体的内容
+void post_response(key_value dict, int client)
+{
+    printf("发送post数据");
+    char buf[1024];
+    strcpy(buf, "HTTP/1.1 200 OK\r\n");
+    send(client, buf, strlen(buf), 0);
+    strcpy(buf, SERVER_STRING);
+    send(client, buf, strlen(buf), 0);
+    sprintf(buf, "Content-Type: text/html\r\n");
+    send(client, buf, strlen(buf), 0);
+
+    sprintf(buf, "\r\n");
+    send(client, buf, strlen(buf), 0);
+
+    sprintf(buf, "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>POST</title><style> .container{width:60%;margin:10% auto 0;background-color:#f0f0f0;padding:2% 5%;border-radius:10px}ul{padding-left:20px;}ul li{line-height:2.3}a{color:#20a53a}</style></head><body><div class=\"container\"><h1>POSTDATA</h1><ul><li>address=beijing</li>\r\n");
+    send(client, buf, sizeof(buf), 0);
+
+    memset(buf, 0, sizeof(buf));
+    for (auto begin = dict.begin(); begin != dict.end(); ++begin)
+    {
+        sprintf(buf, ("<li>" + begin->first + "=" + begin->second + "</li>").data());
+        send(client, buf, strlen(buf), 0);
+        printf("%s\n", buf);
+    }
+
+    sprintf(buf, "</ul></div></body></html>");
+    send(client, buf, strlen(buf), 0);
+    printf("%s\n", buf);
+
+    sprintf(buf, "\r\n\r\n");
+    send(client, buf, strlen(buf), 0);
+    printf("%s\n", buf);
+}
+
 //发送400，客户端请求的语法错误，服务器无法理解
 void bad_request(int client)
 {
@@ -186,7 +218,7 @@ void bad_request(int client)
     sprintf(buf, "\r\n");
     send(client, buf, sizeof(buf), 0);
 
-    FILE *filename = fopen("../resources/http/400.html", "r");
+    FILE *filename = fopen("resources/http/400.html", "r");
     send_file(client, filename);
     fclose(filename);
     sprintf(buf, "\r\n\r\n");
@@ -206,7 +238,7 @@ void not_found(int client)
     sprintf(buf, "\r\n");
     send(client, buf, strlen(buf), 0);
 
-    FILE *filename = fopen("../resources/http/500.html", "r");
+    FILE *filename = fopen("resources/http/500.html", "r");
     send_file(client, filename);
     fclose(filename);
     sprintf(buf, "\r\n\r\n");
@@ -225,7 +257,7 @@ void internal_server_error(int client)
     sprintf(buf, "\r\n");
     send(client, buf, strlen(buf), 0);
 
-    FILE *filename = fopen("../resources/http/500.html", "r");
+    FILE *filename = fopen("resources/http/500.html", "r");
     send_file(client, filename);
     fclose(filename);
     sprintf(buf, "\r\n\r\n");
@@ -245,7 +277,7 @@ void not_implemented(int client)
     sprintf(buf, "\r\n\r\n");
     send(client, buf, strlen(buf), 0);
 
-    FILE *filename = fopen("../resources/http/501.html", "r");
+    FILE *filename = fopen("resources/http/501.html", "r");
     send_file(client, filename);
     fclose(filename);
     sprintf(buf, "\r\n\r\n");

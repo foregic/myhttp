@@ -34,7 +34,7 @@ void send_file(int client, FILE *filename)
     char buf[1024];
     while (!feof(filename))
     {
-        printf("%s\n", buf);
+        // printf("%s\n", buf);
         fgets(buf, sizeof(buf), filename);
         send(client, buf, strlen(buf), 0);
     }
@@ -50,10 +50,11 @@ void response(int fd, char *buffer)
 {
     // printf("%s\n", buffer);
     http_request_header *header = new http_request_header;
+    // printf("打印接受到的报文\n%s",buffer);
     string request(buffer);
     http_request_parse(request, header);
-    printf("打印报文\n");
-    print_http_request_header(header);
+    // printf("打印解析后的报文\n");
+    // print_http_request_header(header);
 
     if (header->method == "GET")
     {
@@ -65,7 +66,7 @@ void response(int fd, char *buffer)
         {
             string tmp("resources/http");
             tmp += header->url;
-            cout << tmp << endl;
+            // cout << tmp << endl;
             if (!file_exist(tmp))
             {
                 not_found(fd);
@@ -77,9 +78,59 @@ void response(int fd, char *buffer)
     }
     else if (header->method == "POST")
     {
+        if (header->url == "/post.html")
+        {
+            int prev = 0, pos_equal = 0, pos_and = 0;
+            key_value post_data;
+            int length = header->body.size();
+            while (pos_and < length - 1)
+            {
+                while (pos_and < length && header->body[pos_and] != '&')
+                {
+                    pos_and++;
+                }
+                ++pos_and;
+                while (header->body[pos_equal] != '=')
+                {
+                    ++pos_equal;
+                }
+                ++pos_equal;
+                string key = header->body.substr(prev, pos_equal - prev - 1);
+                string value = header->body.substr(pos_equal, pos_and - pos_equal - 1);
+                prev = pos_and;
+                post_data[key] = decode(value);
+            }
+            cout << "打印post数据包" << endl;
+            for (auto begin = post_data.begin(); begin != post_data.end(); begin++)
+            {
+                cout << begin->first << ":" << begin->second << endl;
+            }
+
+            post_response(post_data, fd);
+        }
+        else
+        {
+            not_found(fd);
+        }
     }
     else
     {
         not_implemented(fd);
     }
+}
+string decode(const string &str)
+{
+    string ans;
+    for (int i = 0; i < str.size(); ++i)
+    {
+        if (str[i] == '%')
+        {
+            i += 2;
+        }
+        else
+        {
+            ans.push_back(str[i]);
+        }
+    }
+    return ans;
 }

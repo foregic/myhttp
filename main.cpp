@@ -5,7 +5,6 @@
 int main(int argv, char *argc[])
 {
     int server_socket = -1;
-    // u_short port = std::stoi(12100); //监听端口号
     u_short port = 12100; //监听端口号
     if (argv == 2)
     {
@@ -60,7 +59,7 @@ int main(int argv, char *argc[])
                 }
                 fcntl(client_socket, F_SETFL, fcntl(client_socket, F_GETFL, 0));
 
-                ev.events = EPOLLIN; //设置读事件和ET模式
+                ev.events = EPOLLIN; //设置读事件
                 ev.data.fd = client_socket;
 
                 epoll_ctl(epollfd, EPOLL_CTL_ADD, client_socket, &ev);
@@ -84,6 +83,7 @@ int main(int argv, char *argc[])
                 }
 
                 response(events[ii].data.fd, buffer);
+                close(events[ii].data.fd);
             }
         }
     }
