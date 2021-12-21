@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-08-28 11:11:22
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-21 19:48:20
+ * @LastEditTime : 2021-12-21 19:58:01
  * @FilePath     : /httpserver/src/http.cpp
  * @Description  :
  */
@@ -53,6 +53,7 @@ void Httpimpl::http_request_parse(const string &http_request) {
     if (http_request.size() == 0) {
         // TODO 修改异常处理
         perror("http_request_parse: http_request is empty");
+        return;
         // return false;
     }
 
@@ -70,6 +71,7 @@ void Httpimpl::http_request_parse(const string &http_request) {
         sstream >> this->version;
     } else {
         perror("http_parser: http_request has not a \\r\\n");
+        return;
         // return false;
     }
 
@@ -136,9 +138,9 @@ void Httpimpl::response(int fd) {
         if (this->url == "/") {
             if (this->url.size() == 1) {
                 headers(fd, "resources/http/index.html");
+            } else {
+                not_found(fd);
             }
-            not_found(fd);
-            return;
 
         } else {
             string tmp("resources/http");
@@ -189,6 +191,12 @@ void Httpimpl::response(int fd) {
 #include <fstream>
 //发送HTTP头，解析成功，给客户端返回指定文件
 void Httpimpl::headers(int client, const char *file) {
+    FILE *filename = fopen(file, "r");
+
+    if (!filename) {
+        not_found(client);
+        return;
+    }
     // printf("200 OK 发送文件\n");
     char buf[1024];
 
@@ -205,7 +213,6 @@ void Httpimpl::headers(int client, const char *file) {
     // std::fstream ifile(file, std::ios::binary | std::ios::in);
     // sendFile(ifile, client);
     // ifile.close();
-    FILE *filename = fopen(file, "r");
 
     send_file(client, filename);
     fclose(filename);
@@ -328,7 +335,7 @@ void Httpimpl::not_implemented(int client) {
 
 void Httpimpl::send_file(int client, FILE *filename) {
     if (!filename) {
-        fprintf(stderr, "open file %s failed : %s\n", this->url, strerror(errno));
+        fprintf(stderr, "open file %s failed : %s\n", this->url.data(), strerror(errno));
         not_found(client);
         return;
     }

@@ -8,3 +8,4 @@ thread_pool.cpp
 test
 cmake-build-debug
 main
+.gitignore
