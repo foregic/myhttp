@@ -16,14 +16,15 @@ public:
         lua_State *L = luaL_newstate();
         luaopen_base(L);
 
-        // load Lua base libraries
+        // 导入lua基础库
         luaL_openlibs(L);
 
-        //加载1.lua文件，之前的版本luaL_dofile（）函数的第二个参数要写绝对路径，否则执行后会提示“unprotected error in call to lua api(attampt to call a nil value)”错误
+        //加载lua文件
         luaL_dofile(L, "script/post.lua");
 
         string a = "123", b = "456", c = "789", d = "147", e = "258", f = "369";
 
+        //调用lua函数
         lua_getglobal(L, "getPostResponse");
 
         lua_pushstring(L, a.c_str());
@@ -33,12 +34,14 @@ public:
         lua_pushstring(L, e.c_str());
         lua_pushstring(L, f.c_str());
 
+        // 调用函数
         lua_pcall(L, 6, 1, 0);
 
         string result = lua_tostring(L, -1);
 
         cout << result << endl;
 
+        //弹出结果
         lua_pop(L, 1);
 
         // 释放Lua运行时环境.
