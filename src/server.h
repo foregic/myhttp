@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 14:25:13
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-21 18:46:19
+ * @LastEditTime : 2021-12-23 12:50:21
  * @FilePath     : /httpserver/src/server.h
  * @Description  :
  */
@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "http.h"
+#include "threadPool.h"
 
 #define BUFFER_SIZE 1024
 
@@ -47,12 +48,15 @@ private:
     char hostName[128];
     struct hostent *host;
 
+    threadPool tp;
+
 public:
     void getHostName() {
         gethostname(hostName, sizeof(hostName));
         host = gethostbyname(hostName);
     }
-    Server(u_short _port = 12100, int _listenNum = 5, int _maxevents = 100) : port(_port), listenNum(_listenNum), maxEvents(_maxevents) {}
+    Server(u_short _port = 12100, int _listenNum = 5, int _maxevents = 100, int threadPoolSize = 4)
+        : port(_port), listenNum(_listenNum), maxEvents(_maxevents), tp(threadPoolSize) {}
     ~Server();
 
     void socketCreate();

@@ -1,5 +1,7 @@
 {
     "port": 12100,
     "listenNum": 1,
-    "maxEvents": 100
+    "maxEvents": 100,
+    "threadPoolSize": 4,
+    "resourcePath": "resources/http"
 }

@@ -70,6 +70,7 @@ Server::~Server() {
 
 void Server::start() {
     printf("[%s]\tMyHttp Server start\n", this->getTime());
+    tp.run();
     socketCreate();
     epollCreate();
 
@@ -89,6 +90,13 @@ void Server::start() {
                 struct sockaddr_in client;
                 socklen_t len = sizeof(client);
                 int client_socket = accept(this->serverSocket, (struct sockaddr *)&client, &len);
+
+                int nNetTimeout = 1000; // 1秒
+                //发送时限
+                setsockopt(client_socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&nNetTimeout, sizeof(int));
+                //接收时限
+                setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&nNetTimeout, sizeof(int));
+                // setsockopt(client_socket, );
 
                 printf("[%s]\t%s:%d build connect\n", getTime(), inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 
@@ -130,7 +138,8 @@ void Server::start() {
 
                 printf("[%s]\tget data from %s:%d\n", getTime(), inet_ntoa(client.sin_addr), ntohs(client.sin_port));
                 std::unique_ptr<Http> clientHttp(new Httpimpl(buffer));
-                clientHttp->response(events[ii].data.fd);
+                auto f = std::function<void()>([&] { clientHttp->response(events[ii].data.fd); });
+                tp.submit(f);
                 close(events[ii].data.fd);
             }
         }

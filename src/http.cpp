@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-08-28 11:11:22
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-21 19:58:01
+ * @LastEditTime : 2021-12-21 21:32:13
  * @FilePath     : /httpserver/src/http.cpp
  * @Description  :
  */
@@ -148,7 +148,7 @@ void Httpimpl::response(int fd) {
             // cout << tmp << endl;
             // printf("finding data\n");
             if (!file_exist(tmp)) {
-                fprintf(stderr, "%s file not found\n", this->url);
+                fprintf(stderr, "%s file not found\n", this->url.data());
                 // perror("file not found\n");
                 not_found(fd);
                 return;
@@ -222,7 +222,6 @@ void Httpimpl::headers(int client, const char *file) {
     strcpy(buf, "\r\n\r\n");
     send(client, buf, strlen(buf), 0);
 }
-
 //发送浏览器发送的post请求体的内容
 void Httpimpl::post_response(requestHeaders dict, int client) {
     printf("发送post数据");
@@ -237,8 +236,37 @@ void Httpimpl::post_response(requestHeaders dict, int client) {
     sprintf(buf, "\r\n");
     send(client, buf, strlen(buf), 0);
 
-    sprintf(buf,
-            "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>POST</title><style> .container{width:60%;margin:10% auto 0;background-color:#f0f0f0;padding:2% 5%;border-radius:10px}ul{padding-left:20px;}ul li{line-height:2.3}a{color:#20a53a}</style></head><body><div class=\"container\"><h1>POSTDATA</h1><ul>\r\n");
+    string tmp = R"(
+        <head>
+    <meta charset="utf-8">
+    <title>POST DATA</title>
+    <style>
+        .container {
+            width: 60%;
+            margin:auto;
+            background-color: #f0f0f0;
+            padding: 2% 5%;
+            border-radius: 10px
+        }
+        ul {
+            padding-left: 20px;
+        }
+        ul li {
+            line-height: 2.3
+        }
+        a {
+            color: #20a53a
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+    <h1>POST DATA</h1>
+    <ul>
+        )";
+
+    strcat(buf, tmp.c_str());
     send(client, buf, strlen(buf), 0);
 
     memset(buf, 0, sizeof(buf));
@@ -249,7 +277,12 @@ void Httpimpl::post_response(requestHeaders dict, int client) {
         printf("%s\n", buf);
     }
 
-    sprintf(buf, "</ul></div></body></html>");
+    sprintf(buf, R"(
+        </ul>
+        </div>
+        </body>
+        </html>
+    )");
     send(client, buf, strlen(buf), 0);
     printf("%s\n", buf);
 

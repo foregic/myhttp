@@ -98,14 +98,4 @@ private:
 public:
 };
 
-void bad_request(int client);
-
-void not_found(int client);
-
-void internal_server_error(int client);
-
-void not_implemented(int client);
-
-void headers(int client, const char *file);
-
 #endif /* _HTTP_H_ */
