@@ -45,7 +45,7 @@ public:
     Httpimpl() = delete;
     virtual ~Httpimpl() = default;
 
-    explicit Httpimpl(const string &str);
+    explicit Httpimpl(const string str);
 
     virtual void print();
     virtual void response(int fd);

@@ -70,7 +70,7 @@ Server::~Server() {
 
 void Server::start() {
     printf("[%s]\tMyHttp Server start\n", this->getTime());
-    tp.run();
+
     socketCreate();
     epollCreate();
 
@@ -137,10 +137,13 @@ void Server::start() {
                 }
 
                 printf("[%s]\tget data from %s:%d\n", getTime(), inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-                std::unique_ptr<Http> clientHttp(new Httpimpl(buffer));
-                auto f = std::function<void()>([&] { clientHttp->response(events[ii].data.fd); });
-                tp.submit(f);
-                close(events[ii].data.fd);
+
+                auto f = std::function<void()>(
+                    [&] { // printf("lambda\n");
+                        std::shared_ptr<Http> clientHttp(new Httpimpl(std::string(buffer)));
+                        clientHttp->response(events[ii].data.fd);
+                    });
+                tp.submit(std::forward<decltype(f)>(f));
             }
         }
     }

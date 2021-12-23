@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-08-28 11:11:22
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-21 21:32:13
+ * @LastEditTime : 2021-12-23 16:10:09
  * @FilePath     : /httpserver/src/http.cpp
  * @Description  :
  */
@@ -27,7 +27,8 @@ std::unordered_map<int, std::string> HttpResonse::codes = {
     {505, "HTTP Version not supported"} // 服务器不支持请求的HTTP协议的版本，无法完成处理
 };
 
-Httpimpl::Httpimpl(const string &str) {
+Httpimpl::Httpimpl(const string str) {
+    // printf("begin parser\n");
     http_request_parse(str);
 }
 
@@ -133,6 +134,7 @@ std::string Httpimpl::getHeaderLine(const string &key) const {
 }
 
 void Httpimpl::response(int fd) {
+    // printf("begin response\n");
 
     if (this->method == "GET") {
         if (this->url == "/") {
@@ -187,6 +189,7 @@ void Httpimpl::response(int fd) {
     } else {
         not_implemented(fd);
     }
+    close(fd);
 }
 #include <fstream>
 //发送HTTP头，解析成功，给客户端返回指定文件

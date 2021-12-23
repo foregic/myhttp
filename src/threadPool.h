@@ -5,12 +5,15 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <ctime>
 #include <functional>
 #include <future>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <unistd.h>
 #include <utility>
 
 template <typename T>
@@ -20,27 +23,29 @@ public:
     Task(Task &&) {}
     ~Task() {}
 
-    bool empty() const noexcept {
+    bool empty() noexcept {
         std::unique_lock<std::mutex> lock(mx);
         return que.empty();
     }
 
-    size_t size() const noexcept {
+    size_t size() noexcept {
         std::unique_lock<std::mutex> lock(mx);
         return que.size();
     }
 
-    void push(T &t) {
+    void push(T &t) noexcept {
         std::unique_lock<std::mutex> lock(mx);
         que.emplace(t);
     }
 
-    bool pop(T &t) {
+    bool pop(T &t) noexcept {
         if (empty()) {
             return false;
         }
         std::unique_lock<std::mutex> lock(mx);
         t = std::move(que.front());
+
+        que.pop();
         return true;
     }
 
@@ -53,7 +58,8 @@ class threadPool {
 private:
     class Worker {
     public:
-        Worker(threadPool *p) : pool(p) {}
+        Worker(threadPool *p, int i)
+            : pool(p), id(i) {}
 
         void operator()() {
             std::function<void()> func;
@@ -62,21 +68,38 @@ private:
             while (!pool->shutdown) {
                 std::unique_lock<std::mutex> lock(pool->mx);
 
-                pool->cv.wait(lock, [&] { return pool->taskQue.size() > 0; });
+                pool->cv.wait(lock, [&] { 
+                    printf("[%s]\tworker %d waiting for work\n",getTime(),id); 
+                    return pool->taskQue.size() > 0; });
 
                 popResult = pool->taskQue.pop(func);
                 if (popResult) {
-                    func();
+                    try {
+                        printf("[%s]\tworker %d working\n", getTime(), id);
+                        func();
+                    } catch (const std::exception &e) {
+                        std::cerr << e.what() << '\n';
+                    }
                 }
             }
         }
 
+        const char *getTime() {
+            std::time_t result = std::time(NULL);
+            time = std::move(asctime(std::localtime(&result)));
+            time.pop_back();
+            return time.c_str();
+        }
+
     private:
+        std::string time;
+        int id;
         threadPool *pool;
     };
 
 public:
-    threadPool(const int num = 4) : threadNum(num), threads(num), shutdown(false) {}
+    threadPool(const int num = 4)
+        : threadNum(num), threads(std::vector<std::thread>(num)), shutdown(false) {}
     threadPool(const threadPool &other) = delete;
     threadPool(threadPool &&other) = delete;
     threadPool &operator=(threadPool &&other) = delete;
@@ -91,8 +114,8 @@ public:
     }
 
     void run() {
-        for (auto &thread : threads) {
-            thread = std::thread(Worker(this));
+        for (size_t i = 0; i < threads.size(); i++) {
+            threads[i] = std::thread(Worker(this, i + 1));
         }
     }
 
@@ -112,14 +135,22 @@ public:
 public:
     template <typename F, typename... Arg>
     auto submit(F &&f, Arg &&...args) -> std::future<decltype(f(args...))> {
-        auto func = std::bind(std::forward<F>(f), std::move(args)...);
-        auto task = std::make_unique<std::packaged_task<decltype(f(args...))()>>(func);
+        std::function<decltype(f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Arg>(args)...);
+        auto task = std::make_shared<std::packaged_task<decltype(f(args...))()>>(func);
         auto ret = task->get_future();
         if (shutdown.load(std::memory_order_acquire)) {
             throw std::runtime_error("thread pool has shutdown");
         }
-        taskQue.push([&] { task->operator(); });
+        // printf("push task\n");
+        std::function<void()>
+            warpper_func = [&] {
+                (*task)();
+            };
+        taskQue.push(warpper_func);
         cv.notify_one();
+
+        usleep(500);
+
         return ret;
     }
 
