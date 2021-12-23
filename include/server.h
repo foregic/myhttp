@@ -2,13 +2,13 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 14:25:13
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-23 14:49:28
- * @FilePath     : /httpserver/src/server.h
+ * @LastEditTime : 2021-12-23 16:44:39
+ * @FilePath     : /httpserver/include/server.h
  * @Description  :
  */
 
-#ifndef _SERVER_H_
-#define _SERVER_H_
+#ifndef _SERVER_H
+#define _SERVER_H
 
 #include <arpa/inet.h>
 #include <cstdio>
@@ -69,4 +69,4 @@ public:
     void start();
 };
 
-#endif /* _SERVER_H_ */
+#endif /* _SERVER_H */

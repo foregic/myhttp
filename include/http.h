@@ -1,5 +1,13 @@
-#ifndef _HTTP_H_
-#define _HTTP_H_
+/*
+ * @Author       : foregic
+ * @Date         : 2021-12-20 17:24:11
+ * @LastEditors  : foregic
+ * @LastEditTime : 2021-12-23 21:02:53
+ * @FilePath     : /httpserver/include/http.h
+ * @Description  :
+ */
+#ifndef _HTTP_H
+#define _HTTP_H
 
 #include <cstring>
 #include <iostream>
@@ -11,6 +19,8 @@
 
 #define SERVER_STRING "Server: myhttp/1.0\r\n"
 #define BUFFER_SIZE 1024
+
+#include "luascript.h"
 
 class Http;
 
@@ -98,4 +108,4 @@ private:
 public:
 };
 
-#endif /* _HTTP_H_ */
+#endif /* _HTTP_H */

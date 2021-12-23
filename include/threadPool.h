@@ -1,7 +1,14 @@
+/*
+ * @Author       : foregic
+ * @Date         : 2021-12-20 17:24:11
+ * @LastEditors  : foregic
+ * @LastEditTime : 2021-12-23 16:43:58
+ * @FilePath     : /httpserver/include/threadPool.h
+ * @Description  :
+ */
 
-
-#ifndef MYHTTP_THREADPOOL_H
-#define MYHTTP_THREADPOOL_H
+#ifndef _THREADPOOL_H
+#define _THREADPOOL_H
 
 #include <atomic>
 #include <condition_variable>
@@ -163,4 +170,4 @@ private:
     std::vector<std::thread> threads;
 };
 
-#endif // MYHTTP_THREADPOOL_H
+#endif /* _THREADPOOL_H */
