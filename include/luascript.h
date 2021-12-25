@@ -2,49 +2,54 @@
 #pragma once
 
 #include <bits/stdc++.h>
-#include <lua.hpp>
 #include <string>
 
-using namespace std;
+#include <lua.hpp>
 
-class Script {
-    // using namespace std;
-
+class Lua {
 public:
-    void test() {
-
-        lua_State *L = luaL_newstate();
+    Lua() : L(luaL_newstate()) {
         luaopen_base(L);
-
         // 导入lua基础库
         luaL_openlibs(L);
-
         //加载lua文件
         luaL_dofile(L, "script/post.lua");
-
-        string a = "123", b = "456", c = "789", d = "147", e = "258", f = "369";
-
-        //调用lua函数
-        lua_getglobal(L, "getPostResponse");
-
-        lua_pushstring(L, a.c_str());
-        lua_pushstring(L, b.c_str());
-        lua_pushstring(L, c.c_str());
-        lua_pushstring(L, d.c_str());
-        lua_pushstring(L, e.c_str());
-        lua_pushstring(L, f.c_str());
-
-        // 调用函数
-        lua_pcall(L, 6, 1, 0);
-
-        string result = lua_tostring(L, -1);
-
-        cout << result << endl;
-
-        //弹出结果
-        lua_pop(L, 1);
-
-        // 释放Lua运行时环境.
+    }
+    ~Lua() {
         lua_close(L);
+    }
+
+    template <typename... Args>
+    std::string callFunc(const char *str, Args... args) {
+        lua_getglobal(L, str);
+        pushArgs(args...);
+        lua_pcall(L, sizeof...(Args), 1, 0);
+        auto result = lua_tostring(L, -1);
+        lua_pop(L, 1);
+        return result;
+    }
+
+    template <typename T, typename... Args>
+    void pushArgs(T t, Args... args) {
+        lua_pushstring(L, t); // 参数压栈
+        pushArgs(args...);
+    }
+
+    void pushArgs() {
+    }
+
+private:
+    lua_State *L;
+};
+
+class Script {
+
+private:
+    Lua lua;
+
+public:
+    template <typename... Args>
+    std::string getPost(Args... args) {
+        return lua.callFunc("getPostResponse", args...);
     }
 };

@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-08-28 11:11:22
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-23 16:10:09
+ * @LastEditTime : 2021-12-25 15:55:51
  * @FilePath     : /httpserver/src/http.cpp
  * @Description  :
  */
@@ -177,7 +177,7 @@ void Httpimpl::response(int fd) {
                 prev = pos_and;
                 post_data[key] = decode(value);
             }
-            std::cout << "打印post数据包" << std::endl;
+            // std::cout << "打印post数据包" << std::endl;
             for (auto begin = post_data.begin(); begin != post_data.end(); begin++) {
                 std::cout << begin->first << ":" << begin->second << std::endl;
             }
@@ -227,7 +227,7 @@ void Httpimpl::headers(int client, const char *file) {
 }
 //发送浏览器发送的post请求体的内容
 void Httpimpl::post_response(requestHeaders dict, int client) {
-    printf("发送post数据");
+    // printf("发送post数据");
     char buf[1024];
     strcpy(buf, "HTTP/1.1 200 OK\r\n");
     send(client, buf, strlen(buf), 0);
@@ -273,11 +273,16 @@ void Httpimpl::post_response(requestHeaders dict, int client) {
     send(client, buf, strlen(buf), 0);
 
     memset(buf, 0, sizeof(buf));
+
+    Script script;
+
     for (auto begin = dict.begin(); begin != dict.end(); ++begin) {
-        sprintf(buf, "<li>%s=%s</li>\n", begin->first.c_str(), begin->second.c_str());
+        sprintf(buf, script.getPost(begin->first.c_str(), begin->second.c_str()).c_str());
+
+        // sprintf(buf, "<li>%s=%s</li>\n", begin->first.c_str(), begin->second.c_str());
         // sprintf(buf, ("<li>" + begin->first + "=" + begin->second + "</li>").data());
         send(client, buf, strlen(buf), 0);
-        printf("%s\n", buf);
+        // printf("%s\n", buf);
     }
 
     sprintf(buf, R"(
@@ -287,7 +292,7 @@ void Httpimpl::post_response(requestHeaders dict, int client) {
         </html>
     )");
     send(client, buf, strlen(buf), 0);
-    printf("%s\n", buf);
+    // printf("%s\n", buf);
 
     sprintf(buf, "\r\n\r\n");
     send(client, buf, strlen(buf), 0);

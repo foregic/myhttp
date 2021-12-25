@@ -5,14 +5,16 @@
 ```
 httpserver
 ├── CMakeLists.txt
+├── config.json
 ├── README.md
 ├── bin
 │   ├── main
-│   └── make.sh
 ├── include
-│   ├── header.h
-│   ├── http.h
-│   └── utils.h
+│   ├── lua-5.4.3
+│   ├── luascript.h
+│   ├── server.h
+│   ├── sql.h
+│   └── threadPool.h
 ├── resources
 │   ├── file
 │   ├── http
@@ -23,10 +25,14 @@ httpserver
 │   └── img
 │       ├── epoll测试1.png
 │       └── epoll测试2.png
+├── script
+│   └── post.lua
 ├── src
-│   ├── http.cpp
-│   └── utils.cpp
+│   ├── http.cpp
+│   ├── server.cpp
+│   └── threadPool.cpp
 └── main.cpp
+└── make.sh
 ```
 
 |文件名|内容|
@@ -35,27 +41,34 @@ httpserver
 |bin|编译生成的二进制可执行文件|
 |resources|资源文件|
 |include|头文件|
+|script|脚本文件夹|
+|include/lua-5.4.3|lua源文件、头文件、静态库文件|
 |src|源文件|
 |http.cpp|返回状态码以及对应的html文件|
-|utils.cpp|工具|
 |mian.cpp|主函数|
+|config.json|配置文件|
 
 
 ##### 运行环境
 ```
-WSL Ubuntu 20.04
+WSL2 Ubuntu 20.04
 g++ 9.3.0
 cmake 3.16.3
 make 4.2.1
+lua 5.4.3
 ```
 
 #### 编译及运行
 ```shell
-$ cd bin
 $ sh make.sh
-$ ./main 10000 # 设置运行端口号为10000,默认监听端口号12100
 ```
 
+
+
+### 1.3
+增加了lua脚本
+
+script 文件夹存放脚本文件
 
 
 ### 1.2
