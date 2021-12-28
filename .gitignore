@@ -11,9 +11,12 @@ cmake-build-debug
 main
 .gitignore
 include/my-json
-include/lua-5.4.3
+
 script/test.lua
 tree
+log
+main
+lib/md5
 
 
 # Prerequisites

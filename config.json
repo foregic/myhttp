@@ -3,5 +3,13 @@
     "listenNum": 1,
     "maxEvents": 100,
     "threadPoolSize": 4,
-    "resourcePath": "resources/http"
+    "resourcePath": "resources/http",
+    "mysql": {
+        "db": "http",
+        "server": "127.0.0.1",
+        "user": "root",
+        "password": "123456",
+        "port": 3306,
+        "maxConnect":20
+    }
 }

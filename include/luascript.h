@@ -1,10 +1,9 @@
 
-#pragma once
-
-#include <bits/stdc++.h>
-#include <string>
+#ifndef _LUASCRIPT_H
+#define _LUASCRIPT_H
 
 #include <lua.hpp>
+#include <string>
 
 class Lua {
 public:
@@ -53,3 +52,5 @@ public:
         return lua.callFunc("getPostResponse", args...);
     }
 };
+
+#endif /* _LUASCRIPT_H */

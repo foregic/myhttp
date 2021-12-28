@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17) # 设置C++编译版本
 
 SET(CMAKE_CXX_COMPILER "g++")         #设置编译器（可选的有gcc，g++）
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -W -pthread ") 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall  -pthread -ldl -lmysqlpp") 
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}) # 设定编译出来的可执行二进制文件
 
@@ -16,10 +16,20 @@ file(GLOB_RECURSE native_srcs src/*.cpp)
 
 find_library(lua ${CMAKE_SOURCE_DIR}/include)
 
-include_directories(${CMAKE_SOURCE_DIR}/include/lua-5.4.3/install/include/) # 设定需要添加的头文件
-link_libraries( ${CMAKE_SOURCE_DIR}/include/lua-5.4.3/install/lib/liblua.a /usr/lib32/libdl.so) # 添加需要连接库文件目录
+include_directories(
+    /usr/include/mysql
+    /usr/include/mysql++
+    )
+    
 
+include_directories(${CMAKE_SOURCE_DIR}/lib/lua-5.4.3/install/include/ ) # 设定需要添加的头文件
+link_libraries( ${CMAKE_SOURCE_DIR}/lib/lua-5.4.3/install/lib/liblua.a 
+/usr/lib/x86_64-linux-gnu/libdl.so
+/usr/lib/x86_64-linux-gnu/libmysqlpp.so
 
+) # 添加需要连接库文件目录
+
+# target_link_libraries(MYHTTP mysqlpp)
 
 include_directories(${CMAKE_SOURCE_DIR}/include ) # 设定
 

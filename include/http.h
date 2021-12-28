@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 17:24:11
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-23 21:02:53
+ * @LastEditTime : 2021-12-26 23:24:43
  * @FilePath     : /httpserver/include/http.h
  * @Description  :
  */
@@ -17,10 +17,10 @@
 #include <unistd.h>
 #include <unordered_map>
 
+#include "luascript.h"
+
 #define SERVER_STRING "Server: myhttp/1.0\r\n"
 #define BUFFER_SIZE 1024
-
-#include "luascript.h"
 
 class Http;
 
@@ -42,6 +42,8 @@ class Httpimpl : public Http {
 
 private:
     int client; // 客户端套接字
+
+    Script script; // lua脚本
 
     string method;         // 请求方法
     string url;            // 请求url
@@ -77,7 +79,7 @@ private:
         return ans;
     }
 
-    inline bool file_exist(const std::string &name) {
+    bool file_not_exist(const std::string &name) {
         return (access(name.c_str(), F_OK) == -1);
     }
 

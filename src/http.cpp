@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-08-28 11:11:22
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-25 15:55:51
+ * @LastEditTime : 2021-12-26 17:09:40
  * @FilePath     : /httpserver/src/http.cpp
  * @Description  :
  */
@@ -149,7 +149,7 @@ void Httpimpl::response(int fd) {
             tmp += this->url;
             // cout << tmp << endl;
             // printf("finding data\n");
-            if (!file_exist(tmp)) {
+            if (file_not_exist(tmp)) {
                 fprintf(stderr, "%s file not found\n", this->url.data());
                 // perror("file not found\n");
                 not_found(fd);
@@ -274,10 +274,10 @@ void Httpimpl::post_response(requestHeaders dict, int client) {
 
     memset(buf, 0, sizeof(buf));
 
-    Script script;
+    // Script script;
 
     for (auto begin = dict.begin(); begin != dict.end(); ++begin) {
-        sprintf(buf, script.getPost(begin->first.c_str(), begin->second.c_str()).c_str());
+        sprintf(buf, this->script.getPost(begin->first.c_str(), begin->second.c_str()).c_str());
 
         // sprintf(buf, "<li>%s=%s</li>\n", begin->first.c_str(), begin->second.c_str());
         // sprintf(buf, ("<li>" + begin->first + "=" + begin->second + "</li>").data());

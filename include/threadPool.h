@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 17:24:11
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-23 16:43:58
+ * @LastEditTime : 2021-12-26 18:03:50
  * @FilePath     : /httpserver/include/threadPool.h
  * @Description  :
  */
@@ -156,7 +156,7 @@ public:
         taskQue.push(warpper_func);
         cv.notify_one();
 
-        usleep(500);
+        usleep(1000);
 
         return ret;
     }
@@ -168,6 +168,16 @@ private:
     Task<std::function<void()>> taskQue;
     std::condition_variable cv;
     std::vector<std::thread> threads;
+};
+
+class PoolFactory {
+public:
+    static threadPool *create(const int &num = 4) {
+        return new threadPool(num);
+    }
+    static threadPool *create() {
+        return new threadPool();
+    }
 };
 
 #endif /* _THREADPOOL_H */
