@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 14:25:13
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-26 18:03:12
+ * @LastEditTime : 2021-12-29 22:33:24
  * @FilePath     : /httpserver/include/server.h
  * @Description  :
  */
@@ -49,6 +49,7 @@ private:
     struct hostent *host;
 
     std::unique_ptr<threadPool> tp;
+    std::unique_ptr<Log> log;
 
 public:
     void getHostName() {
@@ -56,8 +57,9 @@ public:
         host = gethostbyname(hostName);
     }
     Server(u_short _port = 12100, int _listenNum = 5, int _maxevents = 100, int threadPoolSize = 4)
-        : port(_port), listenNum(_listenNum), maxEvents(_maxevents), tp(PoolFactory::create(threadPoolSize)) {
+        : port(_port), listenNum(_listenNum), maxEvents(_maxevents), tp(PoolFactory::create(threadPoolSize)), log(Log::getInstance()) {
         tp->run();
+        log->run();
     }
     ~Server();
 

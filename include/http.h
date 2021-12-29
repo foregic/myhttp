@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 17:24:11
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-26 23:24:43
+ * @LastEditTime : 2021-12-29 19:20:58
  * @FilePath     : /httpserver/include/http.h
  * @Description  :
  */
@@ -17,6 +17,8 @@
 #include <unistd.h>
 #include <unordered_map>
 
+#include "api.h"
+#include "dao.h"
 #include "luascript.h"
 
 #define SERVER_STRING "Server: myhttp/1.0\r\n"
@@ -89,7 +91,6 @@ private:
     void not_found(int client);
     void internal_server_error(int client);
     void not_implemented(int client);
-
     void send_file(int client, FILE *filename);
 };
 

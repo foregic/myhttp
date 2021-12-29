@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-24 12:57:42
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-28 21:28:33
+ * @LastEditTime : 2021-12-29 22:07:07
  * @FilePath     : /httpserver/include/dao.h
  * @Description  :
  */
@@ -56,6 +56,10 @@ private:
 class ConnPool {
 public:
     ConnPool() = delete;
+    ConnPool(const ConnPool &) = delete;
+    ConnPool(ConnPool &&) = delete;
+    ConnPool &operator=(const ConnPool &) = delete;
+    ConnPool &operator=(ConnPool &&) = delete;
     ConnPool(const char *db, const char *server = 0, const char *user = 0,
              const char *password = 0, unsigned int port = 0, int maxSize = 20) //构造方法
         : db(db), server(server), user(user), password(password), port(port), maxSize(maxSize) {
@@ -64,7 +68,16 @@ public:
             throw std::runtime_error("connect pool has built");
         }
     }
-    ~ConnPool();
+    ~ConnPool() {
+        this->destoryConnectionPool();
+    }
+
+    void destoryConnectionPool() {
+
+        for (auto &connection : conns) {
+            connection.disconnect();
+        }
+    }
 
     static ConnPool *getInstance() { return connPool; }
 
@@ -85,7 +98,8 @@ public:
             return con;
 
         } else {
-            if (curSize < maxSize) { //还可以创建新的连接
+            // 连接池的数量还未达到上限
+            if (curSize < maxSize) {
                 auto con = this->createConnection();
                 if (con.connected()) {
                     ++curSize;
@@ -94,7 +108,7 @@ public:
                     throw std::runtime_error("build connection failed");
                 }
             } else {
-                // todo  建立的连接数已经达到maxSize
+                // 建立的连接数已经达到maxSize
                 cv.wait(lock, [&] { return conns.size() > 0; });
                 auto con = conns.front();
                 return con;
@@ -103,11 +117,9 @@ public:
     }
 
     void releaseConnect(Conn &conn) {
-        if (conn.connected()) {
-            std::unique_lock<std::mutex> lock(mx);
-            conns.push_back(conn);
-            cv.notify_one();
-        }
+        std::unique_lock<std::mutex> lock(mx);
+        conns.push_back(conn);
+        cv.notify_one();
     }
 
 private:
@@ -133,8 +145,8 @@ public:
      * @description  : 传入要执行的语句，执行成功结果为真
      * @param         {*}
      * @return        {*}
+     * 删,增,改
      */
-    // 删,增。改
     bool update(const std::string &str) {
         ConnPool *connPool = ConnPool::getInstance();
         Conn conn = connPool->getConnection();

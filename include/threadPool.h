@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 17:24:11
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-26 18:03:50
+ * @LastEditTime : 2021-12-29 23:33:01
  * @FilePath     : /httpserver/include/threadPool.h
  * @Description  :
  */
@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include <utility>
 
+#include "log.h"
+
 template <typename T>
 class Task {
 public:
@@ -40,9 +42,14 @@ public:
         return que.size();
     }
 
-    void push(T &t) noexcept {
+    void emplace(T &t) noexcept {
         std::unique_lock<std::mutex> lock(mx);
         que.emplace(t);
+    }
+
+    void emplace(T &&t) noexcept {
+        std::unique_lock<std::mutex> lock(mx);
+        que.emplace(std::forward<T>(t));
     }
 
     bool pop(T &t) noexcept {
@@ -65,6 +72,7 @@ class threadPool {
 private:
     class Worker {
     public:
+        Worker() = delete;
         Worker(threadPool *p, int i)
             : pool(p), id(i) {}
 
@@ -75,14 +83,18 @@ private:
             while (!pool->shutdown) {
                 std::unique_lock<std::mutex> lock(pool->mx);
 
-                pool->cv.wait(lock, [&] { 
+                pool->cv_consumer.wait(lock, [&] { 
                     printf("[%s]\tworker %d waiting for work\n",getTime(),id); 
+                    Log::write("worker %d waiting for work\n",id);
+                    
                     return pool->taskQue.size() > 0; });
 
                 popResult = pool->taskQue.pop(func);
                 if (popResult) {
                     try {
+                        pool->cv_producer.notify_one();
                         printf("[%s]\tworker %d working\n", getTime(), id);
+                        Log::write("worker %d working\n", id);
                         func();
                     } catch (const std::exception &e) {
                         std::cerr << e.what() << '\n';
@@ -105,12 +117,14 @@ private:
     };
 
 public:
-    threadPool(const int num = 4)
-        : threadNum(num), threads(std::vector<std::thread>(num)), shutdown(false) {}
+    threadPool() = delete;
     threadPool(const threadPool &other) = delete;
     threadPool(threadPool &&other) = delete;
-    threadPool &operator=(threadPool &&other) = delete;
     threadPool &operator=(const threadPool &other) = delete;
+    threadPool &operator=(threadPool &&other) = delete;
+
+    threadPool(const int &num = 4, const int &maxtasks = 1000)
+        : threadNum(num), threads(std::vector<std::thread>(num)), shutdown(false), maxTasks(maxtasks) {}
     ~threadPool() {
         shutdown = false;
         for (auto &thread : threads) {
@@ -122,13 +136,13 @@ public:
 
     void run() {
         for (size_t i = 0; i < threads.size(); i++) {
-            threads[i] = std::thread(Worker(this, i + 1));
+            threads[i] = std::move(std::thread(Worker(this, i + 1)));
         }
     }
 
     void stop() {
         shutdown = false;
-        cv.notify_all();
+        cv_consumer.notify_all();
         for (auto &thread : threads) {
             if (thread.joinable()) {
                 thread.join();
@@ -141,42 +155,50 @@ public:
 
 public:
     template <typename F, typename... Arg>
-    auto submit(F &&f, Arg &&...args) -> std::future<decltype(f(args...))> {
+    void submit(F &&f, Arg &&...args)
+    // -> std::future<decltype(f(args...))>
+    {
+
         std::function<decltype(f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Arg>(args)...);
         auto task = std::make_shared<std::packaged_task<decltype(f(args...))()>>(func);
         auto ret = task->get_future();
-        if (shutdown.load(std::memory_order_acquire)) {
-            throw std::runtime_error("thread pool has shutdown");
-        }
+
+        // if (shutdown.load(std::memory_order_acquire)) {
+        //     throw std::runtime_error("thread pool has shutdown");
+        // }
+        // taskQue.push(std::move(func));
         // printf("push task\n");
         std::function<void()>
             warpper_func = [&] {
                 (*task)();
             };
-        taskQue.push(warpper_func);
-        cv.notify_one();
+        std::unique_lock<std::mutex> lock(mx);
+        cv_producer.wait(lock, [&] { return taskQue.size() < maxTasks; });
+        {
 
-        usleep(1000);
+            taskQue.emplace(std::move(warpper_func));
+        }
+        cv_consumer.notify_one();
 
-        return ret;
+        // usleep(1000);
+
+        // return ret;
     }
 
 private:
+    int maxTasks;
     std::atomic<bool> shutdown;
     int threadNum;
     std::mutex mx;
     Task<std::function<void()>> taskQue;
-    std::condition_variable cv;
+    std::condition_variable cv_producer, cv_consumer;
     std::vector<std::thread> threads;
 };
 
 class PoolFactory {
 public:
-    static threadPool *create(const int &num = 4) {
-        return new threadPool(num);
-    }
-    static threadPool *create() {
-        return new threadPool();
+    static threadPool *create(const int &num = 4, const int &maxtasks = 1000) {
+        return new threadPool(num, maxtasks);
     }
 };
 

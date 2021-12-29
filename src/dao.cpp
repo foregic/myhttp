@@ -2,12 +2,12 @@
  * @Author       : foregic
  * @Date         : 2021-12-26 18:06:20
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-28 21:35:36
+ * @LastEditTime : 2021-12-29 20:32:26
  * @FilePath     : /httpserver/src/dao.cpp
  * @Description  :
  */
 
-#include "../include/dao.h"
+#include "dao.h"
 
 ConnPool *ConnPool::connPool = new ConnPool("http", "127.0.0.1", "root", "123456", 3306);
 

@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 17:30:42
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-26 23:31:02
+ * @LastEditTime : 2021-12-29 23:29:37
  * @FilePath     : /httpserver/src/server.cpp
  * @Description  :
  */
@@ -144,8 +144,9 @@ void Server::start() {
                 printf("[%s]\tget data from %s:%d\n", getTime(), inet_ntoa(client.sin_addr), ntohs(client.sin_port));
 
                 auto f = std::function<void()>(
-                    [&] { // printf("lambda\n");
-                        std::shared_ptr<Http> clientHttp(new Httpimpl(std::string(buffer)));
+                    [&] {
+                        printf("lambda\n");
+                        std::shared_ptr<Httpimpl> clientHttp(new Httpimpl(std::string(buffer)));
                         clientHttp->response(events[ii].data.fd);
                     });
                 tp->submit(std::forward<decltype(f)>(f));
