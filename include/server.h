@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 14:25:13
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-29 22:33:24
+ * @LastEditTime : 2021-12-30 01:38:43
  * @FilePath     : /httpserver/include/server.h
  * @Description  :
  */
@@ -59,7 +59,6 @@ public:
     Server(u_short _port = 12100, int _listenNum = 5, int _maxevents = 100, int threadPoolSize = 4)
         : port(_port), listenNum(_listenNum), maxEvents(_maxevents), tp(PoolFactory::create(threadPoolSize)), log(Log::getInstance()) {
         tp->run();
-        log->run();
     }
     ~Server();
 

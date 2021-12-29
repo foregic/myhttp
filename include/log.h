@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-28 13:50:06
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-29 23:07:28
+ * @LastEditTime : 2021-12-30 01:47:24
  * @FilePath     : /httpserver/include/log.h
  * @Description  :
  */
@@ -10,6 +10,7 @@
 #ifndef _LOG_H
 #define _LOG_H
 
+#include <atomic>
 #include <condition_variable>
 #include <cstring>
 #include <ctime>
@@ -20,6 +21,7 @@
 #include <semaphore.h>
 #include <string>
 #include <thread>
+#include <unordered_map>
 
 template <typename T>
 class Block {
@@ -58,26 +60,26 @@ private:
     public:
         Printer() = delete;
         Printer(Log *_log) : log(_log) {
-            if (!of)
-                throw std::runtime_error("Log start falied");
         }
         ~Printer() {
             if (log->isclose_) {
-                of.close();
+                if (of.is_open()) {
+                    of.close();
+                }
             }
         }
         void operator()() {
-
             while (!log->isclose_) {
                 std::unique_lock<std::mutex> lock(log->mx);
-                log->cv_consumer.wait(lock, [&] { return log->logs.size() > 0; });
-
-                char buffer[1024];
-                memset(buffer, 0, 1024);
-                sprintf(buffer, "[%s]\t%s\n", getTime(), log->logs.front().data());
-                of.write(buffer, strlen(buffer));
-                log->logs.pop();
-                log->cv_producer.notify_one();
+                log->cv_consumer.wait(lock, [&] { return log->isclose_ || log->logs.size() > 0; });
+                if (!log->isclose_) {
+                    char buffer[1024];
+                    memset(buffer, 0, 1024);
+                    sprintf(buffer, "[%s]\t%s\n", getTime(), log->logs.front().data());
+                    of.write(buffer, strlen(buffer));
+                    log->logs.pop();
+                    log->cv_producer.notify_one();
+                }
             }
         }
         const char *getTime() {
@@ -108,9 +110,9 @@ public:
         }
     }
 
-    Log(const int size = 1000) {
-        isclose_ = false;
-        maxSize = size;
+    Log(const int size = 1000) : isclose_(false), maxSize(size) {
+        std::ofstream of("log", std::ios::binary | std::ios::app);
+        run();
     }
 
     bool full() {
@@ -121,6 +123,7 @@ public:
     }
 
     void run() {
+        // printf("Log thread run\n");
         printThread = std::move(std::thread(Printer(this)));
     }
 
@@ -129,17 +132,30 @@ public:
     }
 
     static void write(const std::string &str) {
-        Log *log = Log::getInstance();
-        log->put(str);
+        // printf("%s\n", str);
+        Mylog->put(str);
     }
     static void write(const char *str) {
-        Log *log = Log::getInstance();
-        log->put(str);
+        // printf("%s\n", str);
+        Mylog->put(str);
     }
     template <typename... Args>
     static void write(const char *__fmt, Args... args) {
-        Log *log = Log::getInstance();
-        log->put(__fmt, args...);
+        // printf(__fmt, args...);
+        Mylog->put(__fmt, args...);
+    }
+
+    template <typename... Args>
+    static void write(int tpye, const char *__fmt, Args... args) {
+        // printf(__fmt, args...);
+        switch (tpye) {
+        case 0:
+            char ch[1024] = "[debug]";
+            strcat(ch, __fmt);
+            write(ch, args...);
+            break;
+        }
+        Mylog->put(__fmt, args...);
     }
 
     template <typename... Args>
@@ -148,7 +164,7 @@ public:
         cv_producer.wait(lock, [&] { return int(logs.size()) < maxSize; });
         char buffer[1024];
         sprintf(buffer, ch, args...);
-        logs.emplace(ch);
+        logs.emplace(buffer);
         post();
     }
 
@@ -167,13 +183,15 @@ public:
     }
 
 private:
-    bool isclose_;
+    std::atomic_bool isclose_;
     std::thread printThread;
     Block<std::string> logs;
     std::mutex mx;
     std::condition_variable cv_producer, cv_consumer;
     int maxSize;
     static Log *Mylog;
+
+    static std::unordered_map<int, std::string> info;
 };
 
 #endif /* _LOG_H */

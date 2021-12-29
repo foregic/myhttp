@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 17:30:42
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-29 23:29:37
+ * @LastEditTime : 2021-12-30 01:28:11
  * @FilePath     : /httpserver/src/server.cpp
  * @Description  :
  */
@@ -74,6 +74,7 @@ Server::~Server() {
 }
 
 void Server::start() {
+
     printf("[%s]\tMyHttp Server start\n", this->getTime());
 
     socketCreate();
@@ -142,12 +143,12 @@ void Server::start() {
                 }
 
                 printf("[%s]\tget data from %s:%d\n", getTime(), inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-
+                int clientfd = events[ii].data.fd;
                 auto f = std::function<void()>(
-                    [&] {
-                        printf("lambda\n");
+                    [=] {
+                        // printf("lambda\n");
                         std::shared_ptr<Httpimpl> clientHttp(new Httpimpl(std::string(buffer)));
-                        clientHttp->response(events[ii].data.fd);
+                        clientHttp->response(clientfd);
                     });
                 tp->submit(std::forward<decltype(f)>(f));
             }

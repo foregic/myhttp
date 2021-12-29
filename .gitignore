@@ -11,8 +11,8 @@ cmake-build-debug
 main
 .gitignore
 include/my-json
-
-
+log.txt
+log.*
 script/test.lua
 tree
 log
