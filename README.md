@@ -69,9 +69,9 @@ $ sh make.sh
 ```json
 "mysql": {
         "db": "http",			// 数据库名
-        "server": "127.0.0.1",	// server地址
+        "server": "127.0.0.1",	        // server地址
         "user": "root",			// 用户名
-        "password": "123456",	// 密码
+        "password": "123456",	        // 密码
         "port": 3306,			// 端口
         "maxConnect":20			// 最大连接数
     }
