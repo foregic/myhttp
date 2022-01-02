@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 17:24:11
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-30 01:20:10
+ * @LastEditTime : 2022-01-01 20:33:10
  * @FilePath     : /httpserver/include/threadPool.h
  * @Description  :
  */
@@ -25,12 +25,12 @@
 
 #include "log.h"
 
-class threadPool {
+class ThreadPool {
 private:
     class Worker {
     public:
         Worker() = delete;
-        Worker(threadPool *p, int i)
+        Worker(ThreadPool *p, int i)
             : pool(p), id(i) {}
 
         void operator()() {
@@ -38,8 +38,8 @@ private:
                 std::function<void()> task;
                 {
                     std::unique_lock<std::mutex> lock(pool->mx);
-                    pool->cv_consumer.wait(lock, [&] {
-                        // printf("[%s]\tworker %d waiting for work\n", getTime(), id);
+                    pool->condVarConsumer.wait(lock, [&] {
+                        printf("worker %d waiting for work\n",  id);
                         // Log::write("worker %d waiting for work", id);
                         return pool->shutdown || !pool->taskQue.empty();
                     }); // wait 直到有 task
@@ -48,28 +48,29 @@ private:
                     task = std::move(pool->taskQue.front());
                     pool->taskQue.pop();
                 }
-                // printf("[%s]\tworker %d working\n", getTime(), id);
+                printf("worker %d working\n",  id);
                 // Log::write("worker %d working", id);
                 task();
+                pool->condVarProducer.notify_one();
             }
         }
 
     private:
         std::string time;
         int id;
-        threadPool *pool;
+        ThreadPool *pool;
     };
 
 public:
-    threadPool() = delete;
-    threadPool(const threadPool &other) = delete;
-    threadPool(threadPool &&other) = delete;
-    threadPool &operator=(const threadPool &other) = delete;
-    threadPool &operator=(threadPool &&other) = delete;
+    ThreadPool() = delete;
+    ThreadPool(const ThreadPool &other) = delete;
+    ThreadPool(ThreadPool &&other) = delete;
+    ThreadPool &operator=(const ThreadPool &other) = delete;
+    ThreadPool &operator=(ThreadPool &&other) = delete;
 
-    threadPool(const int &num = 4, const int &maxtasks = 1000)
+    ThreadPool(const int &num = 4, const int &maxtasks = 1000)
         : threadNum(num), shutdown(false), maxTasks(maxtasks) {}
-    ~threadPool() {
+    ~ThreadPool() {
         shutdown = false;
         for (auto &thread : threads) {
             if (thread.joinable()) {
@@ -79,14 +80,14 @@ public:
     }
 
     void run() {
-        for (size_t i = 0; i < threadNum; i++) {
+        for (int i = 0; i < threadNum; i++) {
             threads.emplace_back(std::move(std::thread(Worker(this, i + 1))));
         }
     }
 
     void stop() {
         shutdown = false;
-        cv_consumer.notify_all();
+        condVarConsumer.notify_all();
         for (auto &thread : threads) {
             if (thread.joinable()) {
                 thread.join();
@@ -108,15 +109,34 @@ public:
 
         {
             std::unique_lock<std::mutex> lock(mx);
-            cv_producer.wait(lock, [&] { return taskQue.size() < maxTasks; });
+            condVarProducer.wait(lock, [&] { return int(taskQue.size()) < maxTasks; });
             taskQue.emplace([=] {
                 (*task)();
             });
-            cv_consumer.notify_one();
+            condVarConsumer.notify_one();
         }
 
         return ret;
     }
+    // template <typename F>
+    // auto submit(F &&f)
+    //     -> std::future<decltype(f)> {
+
+    //     // std::function<decltype(f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Arg>(args)...);
+    //     auto task = std::make_shared<std::packaged_task<decltype(f)()>>(f);
+    //     auto ret = task->get_future();
+
+    //     {
+    //         std::unique_lock<std::mutex> lock(mx);
+    //         condVarProducer.wait(lock, [&] { return int(taskQue.size()) < maxTasks; });
+    //         taskQue.emplace([=] {
+    //             (*task)();
+    //         });
+    //     }
+    //         condVarConsumer.notify_one();
+
+    //     return ret;
+    // }
 
 private:
     int maxTasks;
@@ -124,15 +144,15 @@ private:
     int threadNum;
     std::mutex mx;
     std::queue<std::function<void()>> taskQue;
-    std::condition_variable cv_producer, cv_consumer;
+    std::condition_variable condVarProducer, condVarConsumer;
     std::vector<std::thread> threads;
-    // static threadPool *threadPool;
+    // static ThreadPool *ThreadPool;
 };
 
 class PoolFactory {
 public:
-    static threadPool *create(const int num = 1, const int maxtasks = 1000) {
-        return new threadPool(num, maxtasks);
+    static ThreadPool *create(const int num = 1, const int maxtasks = 1000) {
+        return new ThreadPool(num, maxtasks);
     }
 };
 

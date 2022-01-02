@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-28 22:11:11
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-29 15:29:04
+ * @LastEditTime : 2022-01-01 17:05:08
  * @FilePath     : /httpserver/include/api.h
  * @Description  :
  */
@@ -35,6 +35,9 @@ public:
 
         sprintf(buffer, "select passwd from user where username = %s", username.c_str());
         auto result = query.search(string(buffer));
+        if (result.empty()) {
+            return false;
+        }
 
         if (passwd != result[0][0].data()) {
             return false;
@@ -48,8 +51,13 @@ public:
      * @return        {*}
      */
     static std::string gethash(const std::string &str) {
+
         return MD5(str).toStr();
     }
+
+    static std::unordered_map<std::string, std::string> api;
 };
+
+
 
 #endif /* _API_H */

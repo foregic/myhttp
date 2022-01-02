@@ -3,38 +3,46 @@
 <html>
 
 <head>
-    <meta charset="utf-8">
-    <title>主页</title>
-    <style>
-        .container {
-			
-            width: 60%;
-            margin: 10% auto 0;
-            background-color: #f0f0f0;
-            padding: 2% 5%;
-            border-radius: 10px
-        }
+	<meta charset="utf-8">
+	<title>主页</title>
+	<style>
+		.container {
 
-        ul {
-            padding-left: 20px;
-        }
+			width: 60%;
+			margin: 10% auto 0;
+			background-color: #f0f0f0;
+			padding: 2% 5%;
+			border-radius: 10px
+		}
 
-        ul li {
-            line-height: 2.3
-        }
+		ul {
+			padding-left: 20px;
+		}
 
-        a {
-            color: #20a53a
-        }
-    </style>
+		ul li {
+			line-height: 2.3
+		}
+
+		a {
+			color: #20a53a
+		}
+	</style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>访问index.html成功</h1>
-        <a target="_blank" href="a-test.html" >这时一个测试链接，点击会转到测试页面</a>
+	<div class="container">
+		<h1>访问index.html成功</h1>
+		<a target="_blank" href="a-test.html">这时一个测试链接，点击会转到测试页面</a>
 		<br>
-        <br>
+
+		<form action="register" method="POST">
+			账号：<input type="text" name="user" value="" size="10" maxlength="5">
+			密码：<input type="password" value="" name="password" size="10">
+			<input type="submit" value="提交">
+		</form>
+
+
+		<br>
 		<form action="post.html" method="POST">
 			账号：<input type="text" name="user" value="" size="10" maxlength="5">
 			<br>
@@ -66,8 +74,8 @@
 			<input type="reset" value="重置">
 		</form>
 
-    </div>
-    
+	</div>
+
 </body>
 
 </html>

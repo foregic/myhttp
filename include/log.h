@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-28 13:50:06
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-30 01:47:24
+ * @LastEditTime : 2022-01-01 01:23:36
  * @FilePath     : /httpserver/include/log.h
  * @Description  :
  */
@@ -63,23 +63,36 @@ private:
         }
         ~Printer() {
             if (log->isclose_) {
-                if (of.is_open()) {
-                    of.close();
-                }
             }
         }
         void operator()() {
-            while (!log->isclose_) {
+            log->logFile << "start";
+            printf("start\n");
+            while (1) {
+
                 std::unique_lock<std::mutex> lock(log->mx);
-                log->cv_consumer.wait(lock, [&] { return log->isclose_ || log->logs.size() > 0; });
-                if (!log->isclose_) {
-                    char buffer[1024];
-                    memset(buffer, 0, 1024);
-                    sprintf(buffer, "[%s]\t%s\n", getTime(), log->logs.front().data());
-                    of.write(buffer, strlen(buffer));
-                    log->logs.pop();
-                    log->cv_producer.notify_one();
+                log->condVarConsumer.wait(lock, [&] { return log->isclose_ || log->logs.size() > 0; });
+                if (log->isclose_) {
+                    break;
                 }
+                auto info = log->logs.front();
+                log->logs.pop();
+                lock.unlock();
+
+                char buffer[1024];
+                memset(buffer, 0, 1024);
+                sprintf(buffer, "[%s]\t%s\n", getTime(), info.c_str());
+                // if (log->logFile.is_open()) {
+                //     printf("文件已打开");
+                // } else {
+                //     printf("文件已关闭");
+                // }
+                // printf("输出信息:%s\n", buffer);
+                // log->logFile << buffer;
+                log->logFile.write(buffer, strlen(buffer));
+                // log->logFile.flush();
+                // printf("写入信息完毕\n");
+                log->condVarProducer.notify_one();
             }
         }
         const char *getTime() {
@@ -92,7 +105,7 @@ private:
 
     private:
         std::string time;
-        static std::ofstream of;
+
         Log *log;
     };
 
@@ -104,50 +117,53 @@ public:
     Log &operator=(Log &&) = delete;
     ~Log() {
         isclose_ = true;
+        logFile.close();
         post();
         if (printThread.joinable()) {
             printThread.join();
         }
     }
 
-    Log(const int size = 1000) : isclose_(false), maxSize(size) {
-        std::ofstream of("log", std::ios::binary | std::ios::app);
+private:
+    Log(const int size) : isclose_(false), maxSize(size) {
+
+        logFile.open("log", std::ios::binary);
+        while (!logFile) {
+            perror("log start failed");
+            exit(0);
+        }
         run();
     }
 
+public:
     bool full() {
-        return logs.size() == maxSize;
+        return int(logs.size()) == maxSize;
     }
     static Log *getInstance() {
         return Mylog;
     }
 
     void run() {
-        // printf("Log thread run\n");
-        printThread = std::move(std::thread(Printer(this)));
+        printThread = std::thread(Printer(this));
     }
 
     void post() {
-        cv_consumer.notify_one();
+        condVarConsumer.notify_one();
     }
 
     static void write(const std::string &str) {
-        // printf("%s\n", str);
         Mylog->put(str);
     }
     static void write(const char *str) {
-        // printf("%s\n", str);
         Mylog->put(str);
     }
     template <typename... Args>
     static void write(const char *__fmt, Args... args) {
-        // printf(__fmt, args...);
         Mylog->put(__fmt, args...);
     }
 
     template <typename... Args>
     static void write(int tpye, const char *__fmt, Args... args) {
-        // printf(__fmt, args...);
         switch (tpye) {
         case 0:
             char ch[1024] = "[debug]";
@@ -160,24 +176,24 @@ public:
 
     template <typename... Args>
     void put(const char *ch, Args... args) {
-        std::unique_lock<std::mutex> lock(mx);
-        cv_producer.wait(lock, [&] { return int(logs.size()) < maxSize; });
         char buffer[1024];
         sprintf(buffer, ch, args...);
+        std::unique_lock<std::mutex> lock(mx);
+        condVarProducer.wait(lock, [&] { return int(logs.size()) < maxSize; });
         logs.emplace(buffer);
         post();
     }
 
     void put(const char *ch) {
         std::unique_lock<std::mutex> lock(mx);
-        cv_producer.wait(lock, [&] { return int(logs.size()) < maxSize; });
+        condVarProducer.wait(lock, [&] { return int(logs.size()) < maxSize; });
         logs.emplace(ch);
         post();
     }
 
     void put(const std::string &str) {
         std::unique_lock<std::mutex> lock(mx);
-        cv_producer.wait(lock, [&] { return int(logs.size()) < maxSize; });
+        condVarProducer.wait(lock, [&] { return int(logs.size()) < maxSize; });
         logs.emplace(str);
         post();
     }
@@ -187,11 +203,15 @@ private:
     std::thread printThread;
     Block<std::string> logs;
     std::mutex mx;
-    std::condition_variable cv_producer, cv_consumer;
+    std::condition_variable condVarProducer, condVarConsumer;
     int maxSize;
+
+public:
+    std::ofstream logFile;
     static Log *Mylog;
 
-    static std::unordered_map<int, std::string> info;
+    // todo 添加信息标识debug、info、warning等
+    // static std::unordered_map<int, std::string> info;
 };
 
 #endif /* _LOG_H */

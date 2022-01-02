@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-24 12:57:42
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-29 22:07:07
+ * @LastEditTime : 2022-01-01 11:59:54
  * @FilePath     : /httpserver/include/dao.h
  * @Description  :
  */
@@ -60,6 +60,8 @@ public:
     ConnPool(ConnPool &&) = delete;
     ConnPool &operator=(const ConnPool &) = delete;
     ConnPool &operator=(ConnPool &&) = delete;
+
+private:
     ConnPool(const char *db, const char *server = 0, const char *user = 0,
              const char *password = 0, unsigned int port = 0, int maxSize = 20) //构造方法
         : db(db), server(server), user(user), password(password), port(port), maxSize(maxSize) {
@@ -68,6 +70,8 @@ public:
             throw std::runtime_error("connect pool has built");
         }
     }
+
+public:
     ~ConnPool() {
         this->destoryConnectionPool();
     }
@@ -87,18 +91,18 @@ public:
 
     Conn getConnection() {
         std::unique_lock<std::mutex> lock(mx);
-        if (conns.size() > 0) {       //连接池容器中还有连接
-            auto con = conns.front(); //得到第一个连接
+        if (conns.size() > 0) {
+            auto con = conns.front();
 
-            conns.pop_front();      //移除第一个连接
-            if (!con.connected()) { //如果连接已经被关闭，删除后重新建立一个
+            conns.pop_front();
+            if (!con.connected()) {
 
-                con = this->createConnection(); // 创建过程可能有异常需要处理
+                con = this->createConnection();
             }
             return con;
 
         } else {
-            // 连接池的数量还未达到上限
+
             if (curSize < maxSize) {
                 auto con = this->createConnection();
                 if (con.connected()) {
@@ -127,7 +131,7 @@ private:
     std::string db, server, user, password;
     unsigned int port;
     int curSize, maxSize;
-    std::mutex mx; // 保证不同线程能互斥的访问连接池获得连接
+    std::mutex mx;
     std::list<Conn> conns;
     static ConnPool *connPool;
 };

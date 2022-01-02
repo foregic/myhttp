@@ -2,33 +2,17 @@
  * @Author       : foregic
  * @Date         : 2021-08-28 11:11:22
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-26 17:09:40
+ * @LastEditTime : 2022-01-01 23:15:25
  * @FilePath     : /httpserver/src/http.cpp
  * @Description  :
  */
 
 #include "http.h"
 
-std::unordered_map<int, std::string> HttpResonse::codes = {
-    {200, "OK"},
-
-    {400, "Bad Request"},        // 客户端请求的语法错误，服务器无法理解
-    {401, "Unauthorized"},       // 请求要求用户的身份认证
-    {403, "Forbidden"},          // 服务器理解请求客户端的请求，但是拒绝执行此请求
-    {404, "Not Found"},          // 服务器无法根据客户端的请求找到资源（网页）
-    {405, "Method Not Allowed"}, // 客户端请求中的方法被禁止
-    {408, "Request Time-out"},   // 服务器等待客户端发送的请求时间过长，超时
-
-    {500, "Internal Server Error"},     // 服务器内部错误，无法完成请求
-    {501, "Not Implemented"},           // 服务器不支持请求的功能，无法完成请求
-    {502, "Bad Gateway"},               // 作为网关或者代理工作的服务器尝试执行请求时，从远程服务器接收到了一个无效的响应
-    {503, "Service Unavailable"},       // 由于超载或系统维护，服务器暂时的无法处理客户端的请求。延时的长度可包含在服务器的Retry-After头信息中
-    {504, "Gateway Time-out"},          // 充当网关或代理的服务器，未及时从远端服务器获取请求
-    {505, "HTTP Version not supported"} // 服务器不支持请求的HTTP协议的版本，无法完成处理
-};
-
-Httpimpl::Httpimpl(const string str) {
+HttpRequest::HttpRequest(const string &str, Server *server_):request(str),server(server_) {
     // printf("begin parser\n");
+
+    std::cout << str << std::endl;
     http_request_parse(str);
 }
 
@@ -37,7 +21,7 @@ Httpimpl::Httpimpl(const string str) {
  * @param         {*}
  * @return        {*}
  */
-void Httpimpl::print() {
+void HttpRequest::print() {
     printf("%s %s %s\n", method.c_str(), url.c_str(), version.c_str());
     for (auto &h : header) {
         printf("%s: %s\n", h.first.c_str(), h.second.c_str());
@@ -50,12 +34,11 @@ void Httpimpl::print() {
  * @param         {string} &http_request
  * @return        {*}
  */
-void Httpimpl::http_request_parse(const string &http_request) {
+bool HttpRequest::http_request_parse(const string &http_request) {
     if (http_request.size() == 0) {
         // TODO 修改异常处理
         perror("http_request_parse: http_request is empty");
-        return;
-        // return false;
+        return false;
     }
 
     string crlf("\r\n"), crlfcrlf("\r\n\r\n");
@@ -72,15 +55,14 @@ void Httpimpl::http_request_parse(const string &http_request) {
         sstream >> this->version;
     } else {
         perror("http_parser: http_request has not a \\r\\n");
-        return;
-        // return false;
+        return false;
     }
 
     //查找"\r\n\r\n"的位置
     size_t pos_crlfcrlf = http_request.find(crlfcrlf, prev);
     if (pos_crlfcrlf == string::npos) {
         perror("http_request: http_request has not a \"\r\n\r\n\"");
-        // return false;
+        return false;
     }
 
     //解析首部行
@@ -117,6 +99,7 @@ void Httpimpl::http_request_parse(const string &http_request) {
     }
     //获取http请求包的实体值
     this->body = http_request.substr(pos_crlfcrlf + 4, http_request.size() - pos_crlfcrlf - 4);
+    return true;
 }
 
 /**
@@ -124,7 +107,7 @@ void Httpimpl::http_request_parse(const string &http_request) {
  * @param         {string} &key
  * @return        {*}
  */
-std::string Httpimpl::getHeaderLine(const string &key) const {
+std::string HttpRequest::getHeaderLine(const string &key) const {
     auto iter = header.find(key);
 
     if (iter == header.end()) {
@@ -133,7 +116,7 @@ std::string Httpimpl::getHeaderLine(const string &key) const {
     return iter->second;
 }
 
-void Httpimpl::response(int fd) {
+void HttpRequest::response(int fd) {
     // printf("begin response\n");
 
     if (this->method == "GET") {
@@ -145,6 +128,7 @@ void Httpimpl::response(int fd) {
             }
 
         } else {
+
             string tmp("resources/http");
             tmp += this->url;
             // cout << tmp << endl;
@@ -159,9 +143,30 @@ void Httpimpl::response(int fd) {
             headers(fd, tmp.c_str());
         }
     } else if (this->method == "POST") {
+        printf("%s\n", this->url.data());
+        auto ret = Api::api.find(this->url);
+        if (ret != Api::api.end()) {
+            char buf[1024];
+            strcpy(buf, "HTTP/1.1 200 OK\r\n");
+            send(fd, buf, strlen(buf), 0);
+            strcpy(buf, SERVER_STRING);
+            send(fd, buf, strlen(buf), 0);
+            sprintf(buf, "Content-Type: text/html\r\n");
+            send(fd, buf, strlen(buf), 0);
+
+            sprintf(buf, "\r\n");
+            send(fd, buf, strlen(buf), 0);
+
+            auto response = "{" + ret->second + "}";
+
+            printf("%s\n", response.c_str());
+            send(fd, response.c_str(), response.size(), 0);
+            close(fd);
+            return;
+        }
         if (this->url == "/post.html") {
             int prev = 0, pos_equal = 0, pos_and = 0;
-            requestHeaders post_data;
+            KeyValue post_data;
             int length = this->body.size();
             while (pos_and < length - 1) {
                 while (pos_and < length && this->body[pos_and] != '&') {
@@ -178,9 +183,9 @@ void Httpimpl::response(int fd) {
                 post_data[key] = decode(value);
             }
             // std::cout << "打印post数据包" << std::endl;
-            for (auto begin = post_data.begin(); begin != post_data.end(); begin++) {
-                std::cout << begin->first << ":" << begin->second << std::endl;
-            }
+            // for (auto begin = post_data.begin(); begin != post_data.end(); begin++) {
+            //     std::cout << begin->first << ":" << begin->second << std::endl;
+            // }
 
             post_response(post_data, fd);
         } else {
@@ -193,7 +198,7 @@ void Httpimpl::response(int fd) {
 }
 #include <fstream>
 //发送HTTP头，解析成功，给客户端返回指定文件
-void Httpimpl::headers(int client, const char *file) {
+void HttpRequest::headers(int client, const char *file) {
     FILE *filename = fopen(file, "r");
 
     if (!filename) {
@@ -226,7 +231,7 @@ void Httpimpl::headers(int client, const char *file) {
     send(client, buf, strlen(buf), 0);
 }
 //发送浏览器发送的post请求体的内容
-void Httpimpl::post_response(requestHeaders dict, int client) {
+void HttpRequest::post_response(KeyValue dict, int client) {
     // printf("发送post数据");
     char buf[1024];
     strcpy(buf, "HTTP/1.1 200 OK\r\n");
@@ -269,20 +274,15 @@ void Httpimpl::post_response(requestHeaders dict, int client) {
     <ul>
         )";
 
-    strcat(buf, tmp.c_str());
+    strcpy(buf, tmp.c_str());
     send(client, buf, strlen(buf), 0);
 
     memset(buf, 0, sizeof(buf));
 
-    // Script script;
-
     for (auto begin = dict.begin(); begin != dict.end(); ++begin) {
-        sprintf(buf, this->script.getPost(begin->first.c_str(), begin->second.c_str()).c_str());
+        strcpy(buf, this->script.getPost(begin->first.c_str(), begin->second.c_str()).c_str());
 
-        // sprintf(buf, "<li>%s=%s</li>\n", begin->first.c_str(), begin->second.c_str());
-        // sprintf(buf, ("<li>" + begin->first + "=" + begin->second + "</li>").data());
         send(client, buf, strlen(buf), 0);
-        // printf("%s\n", buf);
     }
 
     sprintf(buf, R"(
@@ -300,7 +300,7 @@ void Httpimpl::post_response(requestHeaders dict, int client) {
 }
 
 //发送400，客户端请求的语法错误，服务器无法理解
-void Httpimpl::bad_request(int client) {
+void HttpRequest::bad_request(int client) {
     char buf[1024];
     sprintf(buf, "HTTP/1.1 400 BAD REQUEST\r\n");
     send(client, buf, sizeof(buf), 0);
@@ -317,7 +317,7 @@ void Httpimpl::bad_request(int client) {
 }
 
 //发送404，服务器无法根据客户端请求找到资源
-void Httpimpl::not_found(int client) {
+void HttpRequest::not_found(int client) {
     char buf[1024];
     sprintf(buf, "HTTP/1.1 404 NOT FOUND\r\n");
     send(client, buf, strlen(buf), 0);
@@ -338,7 +338,7 @@ void Httpimpl::not_found(int client) {
 }
 
 //发送500，服务器内部错误，无法完成请求
-void Httpimpl::internal_server_error(int client) {
+void HttpRequest::internal_server_error(int client) {
     char buf[1024];
     //发送500
     sprintf(buf, "HTTP/1.1 500 Internal Server Error\r\n");
@@ -356,7 +356,7 @@ void Httpimpl::internal_server_error(int client) {
 }
 
 //发送501，服务器不支持请求的功能，无法完成请求
-void Httpimpl::not_implemented(int client) {
+void HttpRequest::not_implemented(int client) {
     char buf[1024];
     sprintf(buf, "HTTP/1.1 501 Not Implemented\r\n");
     send(client, buf, strlen(buf), 0);
@@ -374,7 +374,7 @@ void Httpimpl::not_implemented(int client) {
     send(client, buf, strlen(buf), 0);
 }
 
-void Httpimpl::send_file(int client, FILE *filename) {
+void HttpRequest::send_file(int client, FILE *filename) {
     if (!filename) {
         fprintf(stderr, "open file %s failed : %s\n", this->url.data(), strerror(errno));
         not_found(client);

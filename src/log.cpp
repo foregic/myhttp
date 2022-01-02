@@ -2,12 +2,10 @@
  * @Author       : foregic
  * @Date         : 2021-12-29 20:32:02
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-30 01:48:11
+ * @LastEditTime : 2022-01-01 00:23:20
  * @FilePath     : /httpserver/src/log.cpp
  * @Description  :
  */
-#include "../include/log.h"
-
-std::ofstream Log::Printer::of("log", std::ios::binary);
+#include "log.h"
 
 Log *Log::Mylog = new Log(1000);

@@ -6,11 +6,11 @@ set(CMAKE_CXX_STANDARD 17) # 设置C++编译版本
 
 SET(CMAKE_CXX_COMPILER "g++")         #设置编译器（可选的有gcc，g++）
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall ") 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g  ") 
 
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}) # 设定编译出来的可执行二进制文件
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin) # 设定编译出来的可执行二进制文件
 
-set(CMAKE_BUILD_TYPE Debug) # 设定编译模式，debug模式
+set(CMAKE_BUILD_TYPE Release) # 设定编译模式，debug模式
 
 file(GLOB_RECURSE native_srcs src/*.cpp)
 
@@ -22,9 +22,12 @@ add_library(MD  SHARED
      ${PROJECT_SOURCE_DIR}/lib
 )
 
+add_subdirectory(lib/my-json)
+
 include_directories(
     lib/lua-5.4.3/install/include
     lib/md5
+    lib/my-json
 )
 
 link_directories(
@@ -52,6 +55,7 @@ target_link_libraries (
     pthread 
     liblua.a
     ${CMAKE_DL_LIBS}
+    my-json
 ) # 链接
 
 

@@ -2,7 +2,7 @@
  * @Author       : foregic
  * @Date         : 2021-12-20 14:25:13
  * @LastEditors  : foregic
- * @LastEditTime : 2021-12-30 01:38:43
+ * @LastEditTime : 2022-01-02 12:56:06
  * @FilePath     : /httpserver/include/server.h
  * @Description  :
  */
@@ -36,8 +36,9 @@
 class Server {
 
 private:
-    u_short port;
-    int serverSocket;
+    static Server *server;
+    u_short port;     // 服务器端口号
+    int serverSocket; // 套接字
     int listenNum;
 
     int maxEvents;
@@ -48,26 +49,47 @@ private:
     char hostName[128];
     struct hostent *host;
 
-    std::unique_ptr<threadPool> tp;
+    std::unique_ptr<ThreadPool> tp;
     std::unique_ptr<Log> log;
 
 public:
-    void getHostName() {
+    void GetHostName() {
         gethostname(hostName, sizeof(hostName));
         host = gethostbyname(hostName);
     }
+
+private:
     Server(u_short _port = 12100, int _listenNum = 5, int _maxevents = 100, int threadPoolSize = 4)
         : port(_port), listenNum(_listenNum), maxEvents(_maxevents), tp(PoolFactory::create(threadPoolSize)), log(Log::getInstance()) {
         tp->run();
     }
+
+public:
     ~Server();
 
-    void socketCreate();
-    void epollCreate();
+    static Server *GetInstance() { return server; }
 
-    const char *getTime();
+    void SocketCreate();
+    void EpollCreate();
+
+    void SocketInit();
+    void BindAddress();
+    void SetListenNUm();
+
+    bool EpollRegisterFd();
+
+    void CloseConnection(int fd);
+
+    char *GetIP(sockaddr_in client) {
+        return inet_ntoa(client.sin_addr);
+    }
+    int GetPort(sockaddr_in client) {
+        return ntohs(client.sin_port);
+    }
 
     void start();
+
+    static std::string resourcePath;
 };
 
 #endif /* _SERVER_H */
